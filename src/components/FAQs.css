@@ -1,0 +1,19 @@
+/* src/components/FAQs.css */
+
+.faqs {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  margin-bottom: 20px;
+}
+
+.faq-item h2 {
+  margin-bottom: 10px;
+}
+
+.faq-item p {
+  margin: 0;
+}

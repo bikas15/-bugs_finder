@@ -1,0 +1,33 @@
+/* src/components/CustomerStories.css */
+.customer-stories {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .customer-stories h2 {
+    margin-bottom: 20px;
+  }
+  
+  .story {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .story img {
+    width: 50px; /* Adjust the size as needed */
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 20px;
+  }
+  
+  .story h3 {
+    margin: 0 0 5px;
+  }
+  
+  .story p {
+    margin: 0;
+  }
+  

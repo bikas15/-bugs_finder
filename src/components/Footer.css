@@ -1,0 +1,20 @@
+/* Footer.css */
+
+.footer {
+  background-color: #333; /* Background color */
+  color: #fff; /* Text color */
+  padding: 20px; /* Padding around content */
+  text-align: center; /* Align text to center */
+  position: fixed; /* Fixed position at the bottom */
+  width: 100%; /* Full width */
+  bottom: 0; /* Stick to the bottom */
+}
+
+.footer a {
+  color: #fff; /* Link color */
+  text-decoration: none; /* Remove underline */
+}
+
+.footer a:hover {
+  text-decoration: underline; /* Add underline on hover */
+}

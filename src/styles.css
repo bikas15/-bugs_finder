@@ -1,0 +1,61 @@
+/* styles.css */
+
+body {
+  font-family: Arial, sans-serif; /* Set font family */
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
+}
+
+.container {
+  max-width: 960px; /* Maximum width for content */
+  margin: 0 auto; /* Center the container */
+  padding: 20px; /* Add padding */
+}
+
+.header {
+  background-color: #333; /* Dark background color */
+  color: #fff; /* Light text color */
+  padding: 20px; /* Add padding */
+  text-align: center; /* Center text */
+}
+
+.header h1 {
+  margin: 0; /* Remove margin */
+}
+
+.navbar {
+  background-color: #444; /* Slightly lighter background color */
+  padding: 10px 0; /* Add padding */
+}
+
+.navbar ul {
+  list-style-type: none; /* Remove bullet points */
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
+  text-align: center; /* Center text */
+}
+
+.navbar li {
+  display: inline-block; /* Display items horizontally */
+  margin: 0 10px; /* Add margin between items */
+}
+
+.navbar li a {
+  color: #fff; /* Light text color */
+  text-decoration: none; /* Remove underline */
+}
+
+.navbar li a:hover {
+  text-decoration: underline; /* Add underline on hover */
+}
+
+.footer {
+  background-color: #333; /* Dark background color */
+  color: #fff; /* Light text color */
+  padding: 20px; /* Add padding */
+  text-align: center; /* Center text */
+}
+
+.footer p {
+  margin: 0; /* Remove margin */
+}
