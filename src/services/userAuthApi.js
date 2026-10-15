@@ -1,8 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Cookies from "js-cookie";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 // Define a service using a base URL and expected endpoints
 export const userAuthApi = createApi({
