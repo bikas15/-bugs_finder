@@ -58,9 +58,7 @@ function ToggleCustomTheme({ showCustomTheme, toggleCustomTheme }) {
 }
 
 ToggleCustomTheme.propTypes = {
-  showCustomTheme: PropTypes.shape({
-    valueOf: PropTypes.func.isRequired,
-  }).isRequired,
+  showCustomTheme: PropTypes.bool.isRequired,
   toggleCustomTheme: PropTypes.func.isRequired,
 };
 
@@ -410,33 +408,25 @@ export default function BugFinder() {
     input = editorRef.current.getValue();
     const report = {
       title: formdata.get("title"),
-      user: data.id,
       bug_code: input,
       bug_report: finalresultData,
     };
-    console.log(report);
     const rep = await registerReport(report);
 
     if (rep.data) {
-      // console.log(rep.data);
-
       toast.success("Successfully Added To Report !");
+      return;
     }
-    if (rep.error) {
-      // console.log(rep.error.data.error);
-      if (rep.error.data.title == "This field may not be blank.") {
-        toast.success("Title is Required!");
-      }
-      if (rep.error.data.bug_code == "This field may not be blank.") {
-        toast.success("Code is Required!");
-      }
-      if (rep.error.data.bug_report == "This field may not be blank.") {
-        toast.success("Response is Required!");
-      }
-      if (rep.error.data.error == "Report Already Exist") {
-        toast.success("Report Already Exist!");
-      }
+
+    const errors = rep.error?.data;
+    if (!errors) {
+      toast.error("Unable to save the report. Check your connection and sign-in.");
+      return;
     }
+    if (errors.title) toast.error("Title is required.");
+    else if (errors.bug_code) toast.error("Code is required.");
+    else if (errors.bug_report) toast.error("Analysis response is required.");
+    else toast.error(errors.detail || "Unable to save the report.");
   };
 
   const runCode = async () => {
@@ -454,7 +444,9 @@ export default function BugFinder() {
       setOutput(result.output.split("\n"));
       result.stderr ? setIsErrorCode(true) : setIsErrorCode(false);
     } catch (error) {
-      console.log(error);
+      toast.error(
+        error instanceof Error ? error.message : "Unable to run this code."
+      );
     } finally {
       setIsLoadingCode(false);
     }

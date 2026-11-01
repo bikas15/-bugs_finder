@@ -20,7 +20,9 @@ export default function Hero() {
   const [open, setOpen] = React.useState(false);
   const { access_token } = getToken();
 
-  const { data, isSuccess } = useUserDataQuery(access_token);
+  const { data, isSuccess } = useUserDataQuery(access_token, {
+    skip: !access_token,
+  });
 
   let { name } = getUser();
 
@@ -137,7 +139,7 @@ export default function Hero() {
             marginRight: {xs:"0px",md:"100px"},
           }}
         >
-          <SignIn></SignIn>
+          <SignIn embedded />
         </Container>
       )}
     </Box>

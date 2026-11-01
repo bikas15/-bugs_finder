@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import "./App.css";
 import LandingPage from "./landing-page/LandingPage";
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";

@@ -47,7 +47,7 @@ const items = [
     icon: <QueryStatsRoundedIcon />,
     title: "Free Bug Finder",
     description:
-      "Upload your code and receive hints on potential bugs! This website uses advanced AI to analyze your code (focusing on [language name, e.g., Python])",
+      "Upload code in Python, C, C++, JavaScript, or Java and receive AI-powered analysis with suggestions for potential bugs.",
   },
 ];
 

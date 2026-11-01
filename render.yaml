@@ -1,0 +1,50 @@
+databases:
+  - name: bugsfinder-db
+    region: oregon
+    plan: free
+    databaseName: bugsfinder
+    user: bugsfinder
+
+services:
+  - type: web
+    name: bugsfinder-api-bikas15
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: bugsfinder
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
+    startCommand: python manage.py migrate && gunicorn djangosessionauth.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bugsfinder-db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: bugsfinder-api-bikas15.onrender.com
+      - key: FRONTEND_URL
+        value: https://bikas15.github.io/-bugs_finder
+      - key: SITE_DOMAIN
+        value: https://bugsfinder-api-bikas15.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://bikas15.github.io
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "true"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

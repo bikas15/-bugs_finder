@@ -39,6 +39,7 @@ jobs:
         run: npm run build
         env:
           CI: false
+          REACT_APP_API_URL: https://bugsfinder-api-bikas15.onrender.com/api/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

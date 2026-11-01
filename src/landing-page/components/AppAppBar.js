@@ -17,7 +17,6 @@ import { Context } from "../../context/context";
 import { useNavigate } from "react-router-dom";
 import { removeToken, getToken } from "../../services/localStorageService";
 import {
-  useUserDataQuery,
   useLogoutUserMutation,
 } from "../../services/userAuthApi";
 import { toast } from "react-toastify";
@@ -162,7 +161,7 @@ function AppAppBar({ mode, toggleColorMode }) {
               }}
             >
               <img
-                src={"https://www.svgrepo.com/show/216693/bug.svg"}
+                src={`${process.env.PUBLIC_URL}/bug.svg`}
                 style={logoStyle}
                 alt="logo of sitemark"
               />

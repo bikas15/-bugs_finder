@@ -69,7 +69,6 @@ const defaultTheme = createTheme();
 export default function SignUp() {
   const [registerUser, { isLoading }] = useRegisterMutation();
   const [server_error, setServerError] = React.useState({});
-  const dispatch = useDispatch();
   const handleSubmit = async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -79,20 +78,19 @@ export default function SignUp() {
       password: data.get("password"),
     };
     const res = await registerUser(actualData);
-    console.log(res);
     if (res.error) {
-      console.log(res.error.data);
-      setServerError(res.error.data);
+      setServerError(
+        res.error.data || { detail: "Unable to connect to the registration service." }
+      );
     }
     if (res.data) {
-      console.log(res.data);
-      if (res.data.token2) {
-        storeToken(res.data.token2);
-        const { access_token } = getToken();
-        dispatch(setUserToken({ access_token: access_token }));
-      }
-      navigate("/bugfinder");
-      toast.success("Successfully Registered! You are now signed in.", {});
+      // storeToken(res.data.token2);
+      navigate("/");
+      toast.success(
+        process.env.NODE_ENV === "development"
+          ? "Registration successful. Open the Django terminal for your activation link."
+          : `Registration successful. Activate your account using the email sent to ${actualData.email}.`
+      );
     }
   };
 
@@ -330,6 +328,21 @@ export default function SignUp() {
                       }}
                     >
                       {server_error.non_field_errors[0]}
+                    </Typography>
+                  ) : (
+                    ""
+                  )}
+                  {server_error.detail ? (
+                    <Typography
+                      role="alert"
+                      style={{
+                        fontSize: 12,
+                        color: "red",
+                        paddingLeft: 10,
+                        paddingTop: 5,
+                      }}
+                    >
+                      {server_error.detail}
                     </Typography>
                   ) : (
                     ""

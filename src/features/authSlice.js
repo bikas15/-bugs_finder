@@ -1,7 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  access_token: null,
+  access_token:
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("access_token")
+      : null,
 };
 
 export const authSlice = createSlice({

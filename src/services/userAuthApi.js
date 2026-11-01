@@ -1,16 +1,19 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Cookies from "js-cookie";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+import { API_BASE_URL } from "../config/apiBaseUrl";
 
 // Define a service using a base URL and expected endpoints
 export const userAuthApi = createApi({
   reducerPath: "userAuthApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/`,
+    baseUrl: API_BASE_URL,
     credentials: "include",
     prepareHeaders: (headers) => {
       headers.set("Content-Type", "application/json");
+      const accessToken = localStorage.getItem("access_token");
+      if (accessToken) {
+        headers.set("Authorization", `Bearer ${accessToken}`);
+      }
       return headers;
     },
   }),

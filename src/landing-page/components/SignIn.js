@@ -11,8 +11,6 @@ import Box from "@mui/material/Box";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
-import Footer from "./Footer";
-
 import AppAppBar from "./AppAppBar";
 import getLPTheme from "../getLPTheme";
 
@@ -22,14 +20,11 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
   useLoginUserMutation,
-  useCsrftokenMutation,
 } from "../../services/userAuthApi";
 import { storeToken, getToken } from "../../services/localStorageService";
 import { Alert } from "@mui/material";
 import { toast } from "react-toastify";
 import { setUserToken } from "../../features/authSlice";
-import axios, { isCancel, AxiosError } from "axios";
-import Cookies from "js-cookie";
 
 function ToggleCustomTheme({ showCustomTheme, toggleCustomTheme }) {
   return (
@@ -64,9 +59,8 @@ function ToggleCustomTheme({ showCustomTheme, toggleCustomTheme }) {
 
 const defaultTheme = createTheme();
 
-export default function SignIn() {
+export default function SignIn({ embedded = false }) {
   const [loginUser, { isLoading }] = useLoginUserMutation();
-  const [csrftoken] = useCsrftokenMutation();
   const [server_error, setServerError] = React.useState({});
 
   const dispatch = useDispatch();
@@ -81,10 +75,11 @@ export default function SignIn() {
     const res = await loginUser(actualData);
 
     if (res.error) {
-      setServerError(res.error.data);
+      setServerError(
+        res.error.data || { detail: "Unable to connect to the sign-in service." }
+      );
     }
     if (res.data) {
-      console.log(res.data);
       // let session_key = {
       //   session_key: Cookies.get("sessionid"),
       // };
@@ -99,7 +94,7 @@ export default function SignIn() {
       let { access_token } = getToken();
 
       dispatch(setUserToken({ access_token: access_token }));
-      navigate("/bugfinder");
+      navigate("/");
       toast.success("Successfully Login !", {});
     }
   };
@@ -130,7 +125,9 @@ export default function SignIn() {
   return (
     <ThemeProvider theme={showCustomTheme ? LPtheme : defaultTheme}>
       <CssBaseline />
-      <AppAppBar mode={mode} toggleColorMode={toggleColorMode} />
+      {!embedded && (
+        <AppAppBar mode={mode} toggleColorMode={toggleColorMode} />
+      )}
 
       <Container
         component="main"

@@ -40,29 +40,22 @@ const ContextProvider = (props) => {
     setRecentPrompt("");
     setLoading(true);
     setShowResult(true);
-    let response = await run(prompt);
-    // let responseArray = response.split("**");
-    // let newResponse = "";
-    // for (let i = 0; i < responseArray.length; i++) {
-    //   if (i === 0 || i % 2 !== 1) {
-    //     newResponse += responseArray[i];
-    //   } else {
-    //     newResponse += "<b>" + responseArray[i] + "</b>";
-    //   }
-    // }
-    // let newResponse2 = newResponse.split("*").join("</br>");
-    setFinalResultData(response)
-    let newResponseArray = response.split(" ");
-    
-   
-
-    for (let i = 0; i < newResponseArray.length; i++) {
-      let nextWord = newResponseArray[i];
-      delayPara(i, nextWord + " ");
+    try {
+      const response = await run(prompt);
+      setFinalResultData(response);
+      const responseWords = response.split(" ");
+      for (let i = 0; i < responseWords.length; i++) {
+        delayPara(i, responseWords[i] + " ");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Code analysis failed.";
+      setFinalResultData(message);
+      setResultData(message);
+    } finally {
+      setLoading(false);
+      setInput("");
     }
-
-    setLoading(false);
-    setInput("");
   };
 
   // code analysis
@@ -71,25 +64,29 @@ const ContextProvider = (props) => {
     setResultDataAnalysis("");
     setLoadingAnalysis(true);
     setShowResultAnalysis(true);
-    let response = await run(prompt);
-    let responseArray = response.split("**");
-    let newResponse = "";
-    for (let i = 0; i < responseArray.length; i++) {
-      if (i === 0 || i % 2 !== 1) {
-        newResponse += responseArray[i];
-      } else {
-        newResponse += "<b>" + responseArray[i] + "</b>";
+    try {
+      const response = await run(prompt);
+      const responseArray = response.split("**");
+      let formattedResponse = "";
+      for (let i = 0; i < responseArray.length; i++) {
+        if (i === 0 || i % 2 !== 1) {
+          formattedResponse += responseArray[i];
+        } else {
+          formattedResponse += "<b>" + responseArray[i] + "</b>";
+        }
       }
+      const formattedWords = formattedResponse.split("*").join("</br>").split(" ");
+      for (let i = 0; i < formattedWords.length; i++) {
+        delayParaAnalysis(i, formattedWords[i] + " ");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Code analysis failed.";
+      setResultDataAnalysis(message);
+    } finally {
+      setLoadingAnalysis(false);
+      setInputAnalysis("");
     }
-    let newResponse2 = newResponse.split("*").join("</br>");
-    let newResponseArray = newResponse2.split(" ");
-    for (let i = 0; i < newResponseArray.length; i++) {
-      let nextWord = newResponseArray[i];
-      delayParaAnalysis(i, nextWord + " ");
-    }
-
-    setLoadingAnalysis(false);
-    setInputAnalysis("");
   };
 
   let contextValue = {

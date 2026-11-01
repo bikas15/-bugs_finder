@@ -1,0 +1,190 @@
+import json
+from unittest.mock import Mock, patch
+
+from django.contrib.auth.tokens import default_token_generator
+from django.test import override_settings
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
+from rest_framework_simplejwt.tokens import AccessToken
+
+from account.models import Report, User
+from account.views import CodeAnalysisView
+
+
+class AccountAndReportApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            name="Report Owner",
+            password="test-password-123",
+        )
+        self.user.is_active = True
+        self.user.save()
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            name="Other User",
+            password="test-password-123",
+        )
+        self.other_user.is_active = True
+        self.other_user.save()
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {AccessToken.for_user(self.user)}"
+        )
+
+    def test_report_is_assigned_to_authenticated_user_and_scoped(self):
+        response = self.client.post(
+            reverse("report"),
+            {
+                "user": self.other_user.id,
+                "title": "Potential bug",
+                "bug_code": "print('example')",
+                "bug_report": "No issue found.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        report = Report.objects.get()
+        self.assertEqual(report.user, self.user)
+        self.assertEqual(response.data["data"]["user"], self.user.id)
+
+        Report.objects.create(
+            user=self.other_user,
+            title="Another user's report",
+            bug_code="x = 1",
+            bug_report="Private report.",
+        )
+        list_response = self.client.get(reverse("report"))
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.data["data"]), 1)
+        self.assertEqual(list_response.data["data"][0]["title"], "Potential bug")
+
+    def test_report_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse("report"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_health_endpoint_checks_database(self):
+        response = self.client.get(reverse("health"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"status": "ok"})
+
+    def test_active_user_can_sign_in_and_receive_jwt(self):
+        self.client.credentials()
+        response = self.client.post(
+            reverse("login"),
+            {
+                "email": self.user.email,
+                "password": "test-password-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data["token2"])
+        self.assertIn("refresh", response.data["token2"])
+
+    @override_settings(GEMINI_API_KEY="")
+    def test_analysis_reports_missing_server_configuration(self):
+        request = APIRequestFactory().post(
+            reverse("code_analysis"),
+            {"prompt": "Explain this code."},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        response = CodeAnalysisView.as_view()(request)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("GEMINI_API_KEY", response.data["detail"])
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("account.views.urlopen")
+    def test_analysis_calls_provider_from_backend(self, mocked_urlopen):
+        provider_response = Mock()
+        provider_response.__enter__ = Mock(return_value=provider_response)
+        provider_response.__exit__ = Mock(return_value=False)
+        provider_response.read.return_value = json.dumps(
+            {
+                "candidates": [
+                    {"content": {"parts": [{"text": "No bugs found."}]}}
+                ]
+            }
+        ).encode("utf-8")
+        mocked_urlopen.return_value = provider_response
+
+        response = self.client.post(
+            reverse("code_analysis"),
+            {"prompt": "Analyze this sample."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["response"], "No bugs found.")
+        provider_request = mocked_urlopen.call_args.args[0]
+        self.assertNotIn("test-key", provider_request.full_url)
+        self.assertEqual(provider_request.get_header("X-goog-api-key"), "test-key")
+
+
+class RegistrationApiTests(APITestCase):
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+        EMAIL_HOST_USER="",
+        EMAIL_HOST_PASSWORD="",
+    )
+    def test_registration_returns_configuration_error_without_creating_user(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "name": "New User",
+                "email": "new-user@example.com",
+                "password": "valid-password-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(User.objects.filter(email="new-user@example.com").exists())
+
+    @patch("account.views.send_activation_email")
+    def test_registration_creates_inactive_user_and_sends_activation_email(
+        self, send_activation_email
+    ):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "name": "New User",
+                "email": "new-user@example.com",
+                "password": "valid-password-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(email="new-user@example.com")
+        self.assertFalse(user.is_active)
+        send_activation_email.assert_called_once()
+        self.assertEqual(send_activation_email.call_args.args[0], user.email)
+        self.assertIn("/api/account/activate/", send_activation_email.call_args.args[1])
+        self.assertNotIn("token2", response.data)
+
+    def test_activation_redirects_to_the_hash_router_landing_page(self):
+        user = User.objects.create_user(
+            email="activate@example.com",
+            name="Activate User",
+            password="test-password-123",
+        )
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        response = self.client.get(
+            reverse("activate", kwargs={"uid": uid, "token": token})
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            "http://localhost:3000/#/?message=Account+Successfully+Activated",
+        )
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
