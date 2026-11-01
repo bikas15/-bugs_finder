@@ -34,6 +34,7 @@ After the backend is created, add these private service environment variables in
 - `EMAIL_HOST_USER`: the sender email address.
 - `EMAIL_HOST_PASSWORD`: an SMTP/app password (never a regular account password).
 - `GEMINI_API_KEY`: a server-side Gemini API key.
+- `BUGSFINDER_DEMO_EMAIL` and `BUGSFINDER_DEMO_PASSWORD`: optional shared demo login credentials. The password must be at least 12 characters. Anyone using this shared account can see its saved reports, so do not store private data there.
 
 Do not put these secrets in GitHub files or frontend variables. Sign-up will return a clear service error until SMTP is configured; AI analysis needs the Gemini key.
 

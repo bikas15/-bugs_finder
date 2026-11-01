@@ -13,7 +13,7 @@ services:
     plan: free
     rootDir: bugsfinder
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
-    startCommand: python manage.py migrate && gunicorn djangosessionauth.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: python manage.py migrate && python manage.py create_demo_user && gunicorn djangosessionauth.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /api/health/
     envVars:
       - key: PYTHON_VERSION
@@ -47,4 +47,8 @@ services:
       - key: EMAIL_HOST_PASSWORD
         sync: false
       - key: GEMINI_API_KEY
+        sync: false
+      - key: BUGSFINDER_DEMO_EMAIL
+        sync: false
+      - key: BUGSFINDER_DEMO_PASSWORD
         sync: false

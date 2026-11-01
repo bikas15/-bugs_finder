@@ -1,4 +1,6 @@
 import json
+import os
+from io import StringIO
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.tokens import default_token_generator
@@ -188,3 +190,29 @@ class RegistrationApiTests(APITestCase):
         )
         user.refresh_from_db()
         self.assertTrue(user.is_active)
+
+
+class DemoAccountCommandTests(APITestCase):
+    @patch.dict(
+        os.environ,
+        {
+            "BUGSFINDER_DEMO_EMAIL": "demo@example.com",
+            "BUGSFINDER_DEMO_PASSWORD": "safe-demo-password-2026",
+        },
+    )
+    def test_command_creates_active_login_account(self):
+        from django.core.management import call_command
+
+        call_command("create_demo_user", stdout=StringIO())
+
+        user = User.objects.get(email="demo@example.com")
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password("safe-demo-password-2026"))
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_command_skips_when_demo_credentials_are_not_configured(self):
+        from django.core.management import call_command
+
+        call_command("create_demo_user", stdout=StringIO())
+
+        self.assertFalse(User.objects.filter(email="demo@example.com").exists())
