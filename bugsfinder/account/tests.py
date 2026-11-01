@@ -1,5 +1,6 @@
 import json
 import os
+import zlib
 from io import StringIO
 from unittest.mock import Mock, patch
 
@@ -12,7 +13,7 @@ from rest_framework.test import APIRequestFactory, APITestCase, force_authentica
 from rest_framework_simplejwt.tokens import AccessToken
 
 from account.models import Report, User
-from account.views import CodeAnalysisView
+from account.views import CodeAnalysisView, CodeExecutionView
 
 
 class AccountAndReportApiTests(APITestCase):
@@ -126,6 +127,47 @@ class AccountAndReportApiTests(APITestCase):
         provider_request = mocked_urlopen.call_args.args[0]
         self.assertNotIn("test-key", provider_request.full_url)
         self.assertEqual(provider_request.get_header("X-goog-api-key"), "test-key")
+
+    @patch("account.views.urlopen")
+    def test_code_execution_uses_sandboxed_runner(self, mocked_urlopen):
+        provider_response = Mock()
+        provider_response.__enter__ = Mock(return_value=provider_response)
+        provider_response.__exit__ = Mock(return_value=False)
+        token = "1234567890abcdef"
+        provider_response.read.return_value = (
+            f"{token}\n{token}\n2\nExit code: 0{token}".encode("utf-8")
+        )
+        mocked_urlopen.return_value = provider_response
+
+        response = self.client.post(
+            reverse("code_execution"),
+            {
+                "language": "python",
+                "code": "print(1 + 1)",
+                "input": "",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["exit_code"], 0)
+        self.assertIn("2", response.data["output"])
+        provider_request = mocked_urlopen.call_args.args[0]
+        payload = zlib.decompress(provider_request.data, wbits=-zlib.MAX_WBITS)
+        self.assertIn(b"python3", payload)
+        self.assertIn(b"print(1 + 1)", payload)
+        self.assertEqual(provider_request.full_url, "https://tio.run/cgi-bin/run/api/")
+
+    @patch("account.views.urlopen")
+    def test_code_execution_rejects_unsupported_language(self, mocked_urlopen):
+        response = self.client.post(
+            reverse("code_execution"),
+            {"language": "bash", "code": "echo unsafe"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        mocked_urlopen.assert_not_called()
 
 
 class RegistrationApiTests(APITestCase):

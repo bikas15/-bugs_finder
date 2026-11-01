@@ -19,21 +19,6 @@ const ContextProvider = (props) => {
   let [loadingAnalysis, setLoadingAnalysis] = useState(false);
   let [resultDataAnalysis, setResultDataAnalysis] = useState("");
 
-  let delayPara = (index, nextWord) => {
-    setTimeout(function () {
-      setResultData((prev) => prev + nextWord);
-    }, 75 * index);
-    
-  };
-
-  // code analysis
-
-  let delayParaAnalysis = (index, nextWord) => {
-    setTimeout(function () {
-      setResultDataAnalysis((prev) => prev + nextWord);
-    }, 75 * index);
-  };
-
   let onSent = async (prompt) => {
     setResultData("");
     setFinalResultData("");
@@ -43,14 +28,11 @@ const ContextProvider = (props) => {
     try {
       const response = await run(prompt);
       setFinalResultData(response);
-      const responseWords = response.split(" ");
-      for (let i = 0; i < responseWords.length; i++) {
-        delayPara(i, responseWords[i] + " ");
-      }
+      setResultData(response);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Code analysis failed.";
-      setFinalResultData(message);
+      setFinalResultData("");
       setResultData(message);
     } finally {
       setLoading(false);
@@ -66,19 +48,7 @@ const ContextProvider = (props) => {
     setShowResultAnalysis(true);
     try {
       const response = await run(prompt);
-      const responseArray = response.split("**");
-      let formattedResponse = "";
-      for (let i = 0; i < responseArray.length; i++) {
-        if (i === 0 || i % 2 !== 1) {
-          formattedResponse += responseArray[i];
-        } else {
-          formattedResponse += "<b>" + responseArray[i] + "</b>";
-        }
-      }
-      const formattedWords = formattedResponse.split("*").join("</br>").split(" ");
-      for (let i = 0; i < formattedWords.length; i++) {
-        delayParaAnalysis(i, formattedWords[i] + " ");
-      }
+      setResultDataAnalysis(response);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Code analysis failed.";

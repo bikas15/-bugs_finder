@@ -1,5 +1,7 @@
 import json
 import logging
+import re
+import zlib
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -16,6 +18,7 @@ from django.utils.encoding import force_bytes, force_str
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from account.serializers import UserSerializer
 from account.serializers import UserProfileSerializer
@@ -33,6 +36,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
+
+CODE_RUNNER_LANGUAGES = {
+    "python": "python3",
+    "java": "java-jdk",
+    "c": "c-gcc",
+    "c++": "cpp-gcc",
+    "javascript": "javascript-node",
+}
 
 
 def activation_redirect(parameter, message):
@@ -351,6 +362,109 @@ class CodeAnalysisView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         return Response({"response": response_text}, status=status.HTTP_200_OK)
+
+
+class CodeExecutionView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "code_execution"
+
+    def post(self, request):
+        language = request.data.get("language")
+        code = request.data.get("code")
+        stdin = request.data.get("input", "")
+        if language not in CODE_RUNNER_LANGUAGES:
+            return Response(
+                {"detail": "Choose a supported programming language."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(code, str) or not code.strip():
+            return Response(
+                {"detail": "Non-empty source code is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(code) > 50000:
+            return Response(
+                {"detail": "Source code must be 50,000 characters or fewer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(stdin, str) or len(stdin) > 10000:
+            return Response(
+                {"detail": "Custom input must be text of 10,000 characters or fewer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        code_bytes = code.encode("utf-8")
+        input_bytes = stdin.encode("utf-8")
+        payload = (
+            f"Vlang\0"
+            f"1\0{CODE_RUNNER_LANGUAGES[language]}\0"
+            f"F.code.tio\0{len(code_bytes)}\0"
+        ).encode("utf-8")
+        payload += code_bytes
+        payload += (
+            f"\0F.input.tio\0{len(input_bytes)}\0".encode("utf-8")
+            + input_bytes
+            + b"\0Vargs\0\0R"
+        )
+        compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS)
+        compressed_payload = compressor.compress(payload) + compressor.flush()
+        provider_request = Request(
+            "https://tio.run/cgi-bin/run/api/",
+            data=compressed_payload,
+            headers={"Content-Type": "application/octet-stream"},
+            method="POST",
+        )
+
+        try:
+            with urlopen(provider_request, timeout=30) as provider_response:
+                provider_output = provider_response.read(100001)
+        except HTTPError as error:
+            logger.warning("TIO returned HTTP %s during code execution.", error.code)
+            return Response(
+                {"detail": "The code execution service rejected the request."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except (URLError, OSError):
+            logger.exception("Could not reach the TIO code execution service.")
+            return Response(
+                {"detail": "Could not reach the code execution service."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if len(provider_output) > 100000:
+            return Response(
+                {"detail": "The code execution service returned too much output."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        try:
+            response_text = provider_output.decode("utf-8")
+        except UnicodeDecodeError:
+            logger.exception("TIO returned non-UTF-8 output.")
+            return Response(
+                {"detail": "The code execution service returned invalid output."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        if len(response_text) < 16:
+            logger.warning("TIO returned an incomplete execution response.")
+            return Response(
+                {"detail": "The code execution service returned an invalid response."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        token = response_text[:16]
+        output = response_text[16:].replace(token, "").strip()
+        exit_code_match = re.search(r"Exit code:\s*(-?\d+)\s*$", output)
+        if not exit_code_match:
+            logger.warning("TIO response did not contain an exit code.")
+            return Response(
+                {"detail": "The code execution service returned an invalid response."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response(
+            {"output": output, "exit_code": int(exit_code_match.group(1))},
+            status=status.HTTP_200_OK,
+        )
 
 # class ChangePasswordView(APIView):
 #     def post(self, request):

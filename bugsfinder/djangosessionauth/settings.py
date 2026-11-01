@@ -91,7 +91,10 @@ if os.getenv("DATABASE_URL"):
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'code_execution': '30/hour',
+    },
 }
 
 

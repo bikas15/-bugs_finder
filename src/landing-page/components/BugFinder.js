@@ -73,6 +73,9 @@ export default function BugFinder() {
   const [isLoadingCodeBox, setIsLoadingCodeBox] = React.useState(false);
 
   const [isErrorCode, setIsErrorCode] = React.useState(false);
+  const [editorCode, setEditorCode] = React.useState("");
+  const [analyzedCode, setAnalyzedCode] = React.useState("");
+  const [executionReport, setExecutionReport] = React.useState(null);
 
   const { access_token } = getToken();
 
@@ -118,6 +121,7 @@ export default function BugFinder() {
 
   function handleEditorDidMount(editor, monaco) {
     editorRef.current = editor;
+    setEditorCode(editor.getValue());
   }
 
   let getEditorValue = async () => {
@@ -129,7 +133,13 @@ export default function BugFinder() {
     setOutput("");
     setIsErrorCode(false);
 
-    input = editorRef.current.getValue();
+    input = editorRef.current?.getValue() || "";
+    if (!input.trim()) {
+      toast.error("Enter code before asking Bug Finder to analyze it.");
+      return;
+    }
+    setAnalyzedCode(input);
+    setFinalResultData("");
     setInput(input);
     setLoading(true);
 
@@ -405,11 +415,23 @@ export default function BugFinder() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const formdata = new FormData(event.currentTarget);
-    input = editorRef.current.getValue();
+    const sourceCode = editorRef.current?.getValue() || "";
+    const analysis = analyzedCode === sourceCode ? finalresultData : "";
+    const runOutput =
+      executionReport?.sourceCode === sourceCode ? executionReport.output : "";
+    const reportResponse = analysis || runOutput;
+    if (!sourceCode.trim()) {
+      toast.error("Enter code before saving a report.");
+      return;
+    }
+    if (!reportResponse.trim()) {
+      toast.error("Analyze or run this code before saving a report.");
+      return;
+    }
     const report = {
       title: formdata.get("title"),
-      bug_code: input,
-      bug_report: finalresultData,
+      bug_code: sourceCode,
+      bug_report: reportResponse,
     };
     const rep = await registerReport(report);
 
@@ -432,17 +454,19 @@ export default function BugFinder() {
   const runCode = async () => {
     setResultData("");
 
-    const sourceCode = editorRef.current.getValue();
-    if (!sourceCode) return;
+    const sourceCode = editorRef.current?.getValue() || "";
+    if (!sourceCode.trim()) {
+      toast.error("Enter code before running it.");
+      return;
+    }
     try {
       setIsLoadingCode(true);
-      const { run: result } = await executeCode(
-        language,
-        sourceCode,
-        inputValue
-      );
+      setOutput(null);
+      setExecutionReport(null);
+      const result = await executeCode(language, sourceCode, inputValue);
       setOutput(result.output.split("\n"));
-      result.stderr ? setIsErrorCode(true) : setIsErrorCode(false);
+      setExecutionReport({ sourceCode, output: result.output });
+      setIsErrorCode(result.exitCode !== 0);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Unable to run this code."
@@ -518,7 +542,7 @@ export default function BugFinder() {
               textAlign="center"
               color="text.secondary"
             >
-              <p
+              <Typography
                 style={{
                   color: "#55A6F6",
                   fontWeight: "bold",
@@ -527,7 +551,7 @@ export default function BugFinder() {
               >
                 User input need to be handled in custom input field, this IDE is
                 designed for code execution, not real-time interaction.
-              </p>
+              </Typography>
             </Typography>
           </Stack>
         </Container>
@@ -571,7 +595,7 @@ export default function BugFinder() {
                 alignItems: "center",
               }}
             >
-              <p
+              <Typography
                 style={{
                   color: "#fff",
                   letterSpacing: 1,
@@ -579,7 +603,7 @@ export default function BugFinder() {
                 }}
               >
                 Languages :
-              </p>
+              </Typography>
 
               <LanguageSelector
                 language={language}
@@ -606,6 +630,7 @@ export default function BugFinder() {
                 theme="vs-dark"
                 language={language}
                 onMount={handleEditorDidMount}
+                onChange={(value) => setEditorCode(value || "")}
 
                 // onChange={(e) => setInput(e.target.value)}
                 // value={input}
@@ -639,8 +664,6 @@ export default function BugFinder() {
                   color="bug"
                   variant="contained"
                   size="small"
-                  component="a"
-                  target="_blank"
                   onClick={() => getPreviousEditorValue()}
                   style={{
                     paddingLeft: "15px",
@@ -679,6 +702,7 @@ export default function BugFinder() {
                 ) : (
                   <Button
                     className="button"
+                    disabled={isLoadingCode}
                     color="primary"
                     variant="contained"
                     size="small"
@@ -738,8 +762,6 @@ export default function BugFinder() {
                       color="primary"
                       variant="contained"
                       size="small"
-                      component="a"
-                      target="_blank"
                       onClick={runCode}
                       style={{
                         paddingLeft: "15px",
@@ -760,7 +782,8 @@ export default function BugFinder() {
                       marginBottom: "-10px",
                     }}
                   >
-                    Output :
+                    Output : Code is sent to TIO's sandbox to run. Do not enter
+                    passwords or other secrets.
                   </p>
                 </div>
               ) : (
@@ -784,7 +807,7 @@ export default function BugFinder() {
               ) : !showResult ? (
                 "Click 'Run Code' or 'Find Bug' to see the output here"
               ) : (
-                <p
+                <Typography
                   style={{
                     fontSize: "17px",
                     fontWeight: 300,
@@ -792,8 +815,9 @@ export default function BugFinder() {
                     whiteSpace: "pre-wrap",
                     letterSpacing:2,
                   }}
-                  dangerouslySetInnerHTML={{ __html: resultData }}
-                ></p>
+                >
+                  {resultData}
+                </Typography>
               )}
               {loading ? <p
                   style={{
@@ -862,6 +886,15 @@ export default function BugFinder() {
                     <Button
                     className="save-report-button"
                       type="submit"
+                      disabled={
+                        isLoading ||
+                        isLoadingCode ||
+                        !(
+                          (analyzedCode === editorCode && finalresultData) ||
+                          (executionReport?.sourceCode === editorCode &&
+                            executionReport.output)
+                        )
+                      }
                       style={{
                         color: "#fff",
                         fontSize: "17px",

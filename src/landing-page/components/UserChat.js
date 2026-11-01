@@ -62,26 +62,20 @@ export default function UserChat() {
 
   const { access_token } = getToken();
 
-  const { data, isSuccess } = useReportDataQuery(access_token);
-  // console.log(data.data[0].user)
-
-  const [reportData, setReportData] = React.useState([]);
-
-  const [reportReverseData, setReportReverseData] = React.useState([]);
-
-  const [divData, setDivData] = React.useState({
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+  } = useReportDataQuery(access_token, { skip: !access_token });
+  const reportData = data?.data ?? [];
+  const [selectedReport, setSelectedReport] = React.useState(null);
+  const initialReport = {
     bug_code: "Click Report Title To Show Data Here...",
     bug_report: "Click Report Title To Show Data Here...",
-  });
-
-  const [loadingDiv, setLoadingDiv] = React.useState(false);
-
-  React.useEffect(() => {
-    if (data && isSuccess) {
-      setReportData(data.data);
-      setReportReverseData(reportData.reverse());
-    }
-  }, [data, isSuccess]);
+  };
+  const reportError =
+    error?.data?.detail || error?.error || "Could not load reports.";
 
   const toggleColorMode = () => {
     setMode((prev) => (prev === "dark" ? "dark" : "dark"));
@@ -192,53 +186,34 @@ export default function UserChat() {
                 }}
               >
                 {/* chat title */}
-                {isSuccess ? (
-                  reportData.map((item, index) => {
-                    return (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          marginTop: "18px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            marginTop: 5,
-                          }}
-                        >
-                          <IoChatbubbleEllipses
-                            style={{
-                              fontSize: "20px",
-                            }}
-                          />
-                        </div>
-                        <div
-                          onClick={() => {
-                            setLoadingDiv(true);
-                            setDivData({
-                              bug_code: item.bug_code,
-                              bug_report: item.bug_report,
-                            });
-                          }}
-                          style={{
-                            marginLeft: 8,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 15,
-                              cursor: "pointer",
-                              letterSpacing: 1,
-                            }}
-                          >
-                            {item.title.slice(0, 18)}....
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
+                {isLoading ? (
+                  <p>Loading reports...</p>
+                ) : isError ? (
+                  <p role="alert">{String(reportError)}</p>
+                ) : reportData.length > 0 ? (
+                  reportData.map((item, index) => (
+                    <button
+                      key={`${item.title}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedReport(item)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        margin: "18px auto",
+                        padding: "6px 10px",
+                        border: 0,
+                        background: "transparent",
+                        color: "inherit",
+                        cursor: "pointer",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      <IoChatbubbleEllipses style={{ fontSize: "20px" }} />
+                      <span>{item.title.slice(0, 24)}</span>
+                    </button>
+                  ))
                 ) : (
                   <div
                     style={{
@@ -266,11 +241,10 @@ export default function UserChat() {
                       <p
                         style={{
                           fontSize: 15,
-                          cursor: "pointer",
                           letterSpacing: 1,
                         }}
                       >
-                        No Reports To Show...
+                        No reports yet. Run or analyze code, then save a report.
                       </p>
                     </div>
                   </div>
@@ -332,27 +306,19 @@ export default function UserChat() {
                   borderColor="#0959AA"
                   marginTop="25px"
                 >
-                  {!loadingDiv ? (
-                    <p
-                      style={{
-                        fontSize: "17px",
-                        fontWeight: 300,
-                        lineHeight: 1.8,
-                        whiteSpace: "pre-wrap",
-                      }}
-                      dangerouslySetInnerHTML={{ __html: divData.bug_code }}
-                    ></p>
-                  ) : (
-                    <p
-                      style={{
-                        fontSize: "17px",
-                        fontWeight: 300,
-                        lineHeight: 1.8,
-                        whiteSpace: "pre-wrap",
-                      }}
-                      dangerouslySetInnerHTML={{ __html: divData.bug_code }}
-                    ></p>
-                  )}
+                  <Typography
+                    component="pre"
+                    sx={{
+                      fontSize: "17px",
+                      fontWeight: 300,
+                      lineHeight: 1.8,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {selectedReport?.bug_code ?? initialReport.bug_code}
+                  </Typography>
                 </Box>
               </div>
               <div
@@ -385,27 +351,19 @@ export default function UserChat() {
                   borderRadius={4}
                   borderColor="#0959AA"
                 >
-                  {!loadingDiv ? (
-                    <p
-                      style={{
-                        fontSize: "17px",
-                        fontWeight: 300,
-                        lineHeight: 1.8,
-                        whiteSpace: "pre-wrap",
-                      }}
-                      dangerouslySetInnerHTML={{ __html: divData.bug_report }}
-                    ></p>
-                  ) : (
-                    <p
-                      style={{
-                        fontSize: "17px",
-                        fontWeight: 300,
-                        lineHeight: 1.8,
-                        whiteSpace: "pre-wrap",
-                      }}
-                      dangerouslySetInnerHTML={{ __html: divData.bug_report }}
-                    ></p>
-                  )}
+                  <Typography
+                    component="pre"
+                    sx={{
+                      fontSize: "17px",
+                      fontWeight: 300,
+                      lineHeight: 1.8,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {selectedReport?.bug_report ?? initialReport.bug_report}
+                  </Typography>
                 </Box>
               </div>
             </div>

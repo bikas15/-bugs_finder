@@ -36,8 +36,8 @@ After the backend is created, add these private service environment variables in
 - `GEMINI_API_KEY`: a server-side Gemini API key.
 - `BUGSFINDER_DEMO_EMAIL` and `BUGSFINDER_DEMO_PASSWORD`: optional shared demo login credentials. The password must be at least 12 characters. Anyone using this shared account can see its saved reports, so do not store private data there.
 
-The demo deployment enables `AUTO_ACTIVATE_SIGNUPS`, so new accounts can sign in without email verification while SMTP is not configured. This does not verify that a user owns the submitted email address. Turn this off and configure SMTP before relying on verified email accounts.
+The demo deployment enables `AUTO_ACTIVATE_SIGNUPS`, so new accounts can sign in without email verification while SMTP is not configured. This does not verify that a user owns the submitted email address. Turn this off and configure SMTP before relying on verified email accounts. AI code analysis needs the private `GEMINI_API_KEY` setting.
 
-Do not put these secrets in GitHub files or frontend variables. Sign-up will return a clear service error until SMTP is configured; AI analysis needs the Gemini key.
+Do not put these secrets in GitHub files or frontend variables. Code execution is proxied through Django to TIO's sandbox because Piston's public endpoint now requires authorization; submitted code and input are sent to TIO for execution. Users can save successful AI analyses or code-run output as reports.
 
 The free Render web service can sleep, and free PostgreSQL is temporary rather than production storage. The database may expire and its contents may be deleted; upgrade to a paid database before relying on long-term accounts or reports. Accounts in this hosted database are separate from local SQLite accounts.

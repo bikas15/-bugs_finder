@@ -93,31 +93,19 @@ export default function CodeAnalysis() {
     editorRef.current = editor;
   }
 
-  let getEditorValue = async () => {
-    // let finaldebugValue = "ggggggg";
-
-    inputAnalysis = editorRef.current.getValue();
-    setInputAnalysis(inputAnalysis);
-    setLoadingAnalysis(true);
+  const getEditorValue = async () => {
+    const sourceCode = editorRef.current?.getValue() || "";
+    setInputAnalysis(sourceCode);
     setResultDataAnalysis("");
+    if (!sourceCode.trim()) {
+      setShowResultAnalysis(true);
+      setResultDataAnalysis("Enter code before asking for an analysis.");
+      return;
+    }
 
-    setTimeout(() => {
-      onSentAnalysis(
-        "You are a highly skilled " +
-          language +
-          " software developer and code analyser. I have a source code. Your task is to Identify given code is " +
-          language +
-          " or not. If not then simply ask to provide " +
-          language +
-          " code. If the given code is in " +
-          language +
-          " then analyse and explain the complete flow of code in detail. Your explaination title must start with 'Code Analyse Explaination : ' then your explaination from next line'. Here’s the code: " +
-          inputAnalysis
-      );
-      
-    }, 3000); // Delay in milliseconds
-
-   
+    await onSentAnalysis(
+      `You are a ${language} developer and code analyst. Verify that the source is written in ${language}. If it is, explain its execution flow clearly. Start with "Code Analysis:" and then explain the code.\n\nSource code:\n${sourceCode}`
+    );
   };
 
   return (
@@ -219,7 +207,7 @@ export default function CodeAnalysis() {
                 alignItems: "center",
               }}
             >
-              <p
+              <Typography
                 style={{
                   color: "#fff",
                   letterSpacing: 1,
@@ -227,7 +215,7 @@ export default function CodeAnalysis() {
                 }}
               >
                 Languages :
-              </p>
+              </Typography>
 
               <LanguageSelector
                 language={language}
@@ -311,7 +299,7 @@ export default function CodeAnalysis() {
               {!showResultAnalysis ? (
                 "Click 'Analyse Code' to see the output here"
               ) : (
-                <p
+                <Typography
                   style={{
                     fontSize: "17px",
                     fontWeight: 300,
@@ -319,8 +307,9 @@ export default function CodeAnalysis() {
                     whiteSpace: "pre-wrap",
                     letterSpacing:2,
                   }}
-                  dangerouslySetInnerHTML={{ __html: resultDataAnalysis }}
-                ></p>
+                >
+                  {resultDataAnalysis}
+                </Typography>
               )}
               {loadingAnalysis ? <p
                   style={{
