@@ -148,6 +148,42 @@ class RegistrationApiTests(APITestCase):
         self.assertEqual(response.status_code, 503)
         self.assertFalse(User.objects.filter(email="new-user@example.com").exists())
 
+    @override_settings(
+        AUTO_ACTIVATE_SIGNUPS=True,
+        EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+        EMAIL_HOST_USER="",
+        EMAIL_HOST_PASSWORD="",
+    )
+    @patch("account.views.send_activation_email")
+    def test_registration_activates_without_smtp_when_configured(
+        self, send_activation_email
+    ):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "name": "New User",
+                "email": "new-user@example.com",
+                "password": "valid-password-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["activated"])
+        user = User.objects.get(email="new-user@example.com")
+        self.assertTrue(user.is_active)
+        send_activation_email.assert_not_called()
+        login_response = self.client.post(
+            reverse("login"),
+            {
+                "email": "new-user@example.com",
+                "password": "valid-password-123",
+            },
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200)
+        self.assertIn("access", login_response.data["token2"])
+
     @patch("account.views.send_activation_email")
     def test_registration_creates_inactive_user_and_sends_activation_email(
         self, send_activation_email

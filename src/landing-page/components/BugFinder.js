@@ -660,8 +660,6 @@ export default function BugFinder() {
                   color="bug"
                   variant="contained"
                   size="small"
-                  component="a"
-                  target="_blank"
                   onClick={() => getEditorValue()}
                   style={{
                     paddingLeft: "15px",
@@ -680,12 +678,10 @@ export default function BugFinder() {
                   ""
                 ) : (
                   <Button
-                  className="button"
+                    className="button"
                     color="primary"
                     variant="contained"
                     size="small"
-                    component="a"
-                    target="_blank"
                     onClick={() => {
                       setIsLoadingCodeBox(true);
                       setResultData("");

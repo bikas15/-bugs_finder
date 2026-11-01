@@ -89,7 +89,7 @@ class RegistrationView(APIView):
     def post(self, request):
         serializer = UserSerializer(data = request.data)
         if serializer.is_valid():
-            if (
+            if not settings.AUTO_ACTIVATE_SIGNUPS and (
                 settings.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
                 and not (settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD)
             ):
@@ -101,13 +101,17 @@ class RegistrationView(APIView):
             try:
                 with transaction.atomic():
                     user = serializer.save()
-                    uid = urlsafe_base64_encode(force_bytes(user.pk))
-                    token = default_token_generator.make_token(user)
-                    activation_link = reverse(
-                        'activate', kwargs={'uid': uid, 'token': token}
-                    )
-                    activation_url = f'{settings.SITE_DOMAIN}{activation_link}'
-                    send_activation_email(user.email, activation_url, uid, token)
+                    if settings.AUTO_ACTIVATE_SIGNUPS:
+                        user.is_active = True
+                        user.save(update_fields=["is_active"])
+                    else:
+                        uid = urlsafe_base64_encode(force_bytes(user.pk))
+                        token = default_token_generator.make_token(user)
+                        activation_link = reverse(
+                            'activate', kwargs={'uid': uid, 'token': token}
+                        )
+                        activation_url = f'{settings.SITE_DOMAIN}{activation_link}'
+                        send_activation_email(user.email, activation_url, uid, token)
             except (SMTPException, OSError):
                 logger.exception("Could not send a Bugs Finder activation email.")
                 return Response(
@@ -115,7 +119,13 @@ class RegistrationView(APIView):
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             
-            return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'data': serializer.data,
+                    'activated': settings.AUTO_ACTIVATE_SIGNUPS,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # @method_decorator(csrf_protect, name='dispatch')

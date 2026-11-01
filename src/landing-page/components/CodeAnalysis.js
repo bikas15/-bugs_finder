@@ -281,8 +281,6 @@ export default function CodeAnalysis() {
                   color="primary"
                   variant="contained"
                   size="small"
-                  component="a"
-                  target="_blank"
                   onClick={() => getEditorValue()}
                   style={{
                     paddingLeft: "15px",

@@ -87,9 +87,11 @@ export default function SignUp() {
       // storeToken(res.data.token2);
       navigate("/");
       toast.success(
-        process.env.NODE_ENV === "development"
-          ? "Registration successful. Open the Django terminal for your activation link."
-          : `Registration successful. Activate your account using the email sent to ${actualData.email}.`
+        res.data.activated
+          ? "Account created and activated. You can now sign in."
+          : process.env.NODE_ENV === "development"
+            ? "Registration successful. Open the Django terminal for your activation link."
+            : `Registration successful. Activate your account using the email sent to ${actualData.email}.`
       );
     }
   };
