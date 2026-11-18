@@ -43,9 +43,9 @@ export default function Footer() {
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          
+          flexWrap: "wrap",
+          gap: 2,
           width: "100%",
-          
         }}
       >
         <div>
@@ -58,6 +58,14 @@ export default function Footer() {
           <Link color="text.secondary" href="#">
             Terms of Service
           </Link>
+          <Stack spacing={0.5} sx={{ mt: 1 }}>
+            <Link variant="body2" color="text.secondary" href="mailto:bikashbanjade15@gmail.com">
+              bikashbanjade15@gmail.com
+            </Link>
+            <Link variant="body2" color="text.secondary" href="tel:+9779866863467">
+              9866863467
+            </Link>
+          </Stack>
           <Copyright />
         </div>
         <Stack
