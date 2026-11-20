@@ -27,7 +27,7 @@ React frontend and Django REST API for code analysis, account sign-in, and user-
 
 ## Deploy
 
-The GitHub Pages workflow builds the frontend with the public Render API URL. The `render.yaml` Blueprint creates a Django service and a free Render PostgreSQL database. In Render, create a **Blueprint Instance** from this repository and confirm the free resources.
+The GitHub Pages workflow builds the frontend with the public Render API URL. The `render.yaml` Blueprint creates the Django web service. Supply an external PostgreSQL connection string as the service's private `DATABASE_URL` environment variable. The deployment can use a Neon Free project.
 
 After the backend is created, add these private service environment variables in Render:
 
@@ -40,4 +40,4 @@ The demo deployment enables `AUTO_ACTIVATE_SIGNUPS`, so new accounts can sign in
 
 Do not put these secrets in GitHub files or frontend variables. Code execution is proxied through Django to TIO's sandbox because Piston's public endpoint now requires authorization; submitted code and input are sent to TIO for execution. Users can save successful AI analyses or code-run output as reports.
 
-The free Render web service can sleep, and free PostgreSQL is temporary rather than production storage. The database may expire and its contents may be deleted; upgrade to a paid database before relying on long-term accounts or reports. Accounts in this hosted database are separate from local SQLite accounts.
+The free Render web service and Neon compute can sleep. Neon retains data when compute scales down. Keep independent PostgreSQL backups of hosted accounts and reports. Hosted accounts are separate from local SQLite accounts.

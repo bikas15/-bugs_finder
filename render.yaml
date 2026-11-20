@@ -1,10 +1,3 @@
-databases:
-  - name: bugsfinder-db
-    region: oregon
-    plan: free
-    databaseName: bugsfinder
-    user: bugsfinder
-
 services:
   - type: web
     name: bugsfinder-api-bikas15
@@ -19,9 +12,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: DATABASE_URL
-        fromDatabase:
-          name: bugsfinder-db
-          property: connectionString
+        sync: false
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
